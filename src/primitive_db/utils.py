@@ -14,7 +14,6 @@ def load_metadata(filepath="db_meta.json"):
         print("Ошибка: файл метаданных поврежден.")
         return {}
 
-
 def save_metadata(data, filepath="db_meta.json"):
     """
     Сохраняет метаданные в JSON-файл.
@@ -26,7 +25,6 @@ def save_metadata(data, filepath="db_meta.json"):
     except Exception as e:
         print(f"Ошибка при сохранении метаданных: {e}")
         return False
-
 
 def load_table_data(table_name):
     """Загружает данные таблицы из JSON-файла"""
@@ -42,12 +40,13 @@ def load_table_data(table_name):
 
 def save_table_data(table_name, data):
     """Сохраняет данные таблицы в JSON-файл"""
+    # Создаем директорию data, если её нет
     
     filepath = f"data/{table_name}.json"
     try:
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)    
-            return True
+        return True
     except Exception as e:
         print(f"Ошибка при сохранении файла: {e}")
         return False

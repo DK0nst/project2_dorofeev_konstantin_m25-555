@@ -2,7 +2,7 @@ import shlex
 import prompt
 from .core import (
     create_table, drop_table, list_tables, print_help,
-    insert, select, update, delete
+    insert, select, update, delete, info, display_table
 )
 from .utils import load_metadata, save_metadata
 
@@ -97,7 +97,7 @@ def run():
     """
     Основной цикл программы для работы с базой данных.
     """
-    print("***База данных***")
+    print("***Операции с данными***")
     print_help()
     
     while True:
@@ -152,6 +152,85 @@ def run():
             elif command == "list_tables":
                 result = list_tables(metadata)
                 print(result)
+
+            # ========== CRUD КОМАНДЫ ==========
+                
+            elif command == "insert" and len(args) >= 4 and args[0] == "into" and args[2] == "values":
+                # insert into users values ("John", 25, true)
+                table_name = args[1]
+                values_str = " ".join(args[3:])
+                values = parse_values_list(values_str)
+                
+                success, message = insert(metadata, table_name, values)
+                print(message)
+                
+            elif command == "select" and len(args) >= 2 and args[0] == "from":
+                # select from users
+                # select from users where age=25
+                table_name = args[1]
+                
+                if len(args) > 2 and args[2] == "where":
+                    where_str = " ".join(args[3:])
+                    where_clause, error = parse_where_condition(where_str)
+                    if error:
+                        print(f"Ошибка: {error}")
+                        continue
+                else:
+                    where_clause = None
+                
+                success, result_data = select(metadata, table_name, where_clause)
+                if success:
+                    if result_data:
+                        columns = metadata[table_name]["columns"]
+                        display_table(result_data, columns)
+                    else:
+                        print("Нет данных для отображения")
+                else:
+                    print(result_data)  # В этом случае result_data содержит сообщение об ошибке
+                    
+            elif command == "update" and len(args) >= 5 and "set" in args and "where" in args:
+                # update users set age=26 where name="John"
+                table_name = args[0]
+                set_index = args.index("set")
+                where_index = args.index("where")
+                
+                set_str = " ".join(args[set_index+1:where_index])
+                where_str = " ".join(args[where_index+1:])
+                
+                set_clause, set_error = parse_set_clause(set_str)
+                where_clause, where_error = parse_where_condition(where_str)
+                
+                if set_error:
+                    print(f"Ошибка в SET: {set_error}")
+                    continue
+                if where_error:
+                    print(f"Ошибка в WHERE: {where_error}")
+                    continue
+                
+                success, message = update(metadata, table_name, set_clause, where_clause)
+                print(message)
+                
+            elif command == "delete" and len(args) >= 4 and args[0] == "from" and args[2] == "where":
+                # delete from users where ID=1
+                table_name = args[1]
+                where_str = " ".join(args[3:])
+                
+                where_clause, error = parse_where_condition(where_str)
+                if error:
+                    print(f"Ошибка: {error}")
+                    continue
+                
+                success, message = delete(metadata, table_name, where_clause)
+                print(message)
+                
+            elif command == "info":
+                if len(args) != 1:
+                    print("Ошибка: Неверное количество аргументов. Используйте: info <имя_таблицы>")
+                    continue
+                
+                table_name = args[0]
+                success, message = info(metadata, table_name)
+                print(message)
                 
             else:
                 print(f"Функции '{command}' нет. Попробуйте снова или вызовите справку.")

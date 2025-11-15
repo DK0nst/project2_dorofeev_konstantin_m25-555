@@ -15,8 +15,6 @@ def validate_column_definition(column_def):
     name, col_type = column_def.split(':', 1)
     name = name.strip()
     col_type = col_type.strip().lower()
-
-    print(name, col_type)
     
     if not name:
         return False, "Имя столбца не может быть пустым"
@@ -26,8 +24,8 @@ def validate_column_definition(column_def):
     
     return True, (name, col_type)
 
-
 def create_table(metadata, table_name, columns):
+
     """
     Создает новую таблицу в метаданных.
     Автоматически добавляет столбец ID:int.
@@ -53,9 +51,8 @@ def create_table(metadata, table_name, columns):
         col_name, col_type = result
 
         # Проверяем дублирование столбцов
-        if col_name=="ID":
-            return False, f'Столбец ID создается зарезервирован за системой и создается автоматически'
-
+        if col_name.upper() == "ID":
+            return False, f'Столбец ID зарезервирован за системой и создается автоматически'
 
         if col_name in table_columns:
             return False, f'Столбец "{col_name}" уже существует в таблице'
@@ -69,17 +66,17 @@ def create_table(metadata, table_name, columns):
     columns_str = ", ".join([f"{name}:{typ}" for name, typ in table_columns.items()])
     return True, f'Таблица "{table_name}" успешно создана со столбцами: {columns_str}'
 
-
 def drop_table(metadata, table_name):
+
     """
     Удаляет таблицу из метаданных.
     """
+
     if table_name not in metadata:
         return False, f'Таблица "{table_name}" не существует.'
     
     del metadata[table_name]
     return True, f'Таблица "{table_name}" успешно удалена.'
-
 
 def list_tables(metadata):
     """
@@ -94,11 +91,12 @@ def list_tables(metadata):
     else:
         return "\n".join([f"- {table}" for table in tables])
 
-
 # ========== CRUD ОПЕРАЦИИ ==========
 
 def validate_value(value, expected_type):
+
     """Валидирует значение по типу"""
+
     if expected_type == "int":
         try:
             return True, int(value)
@@ -121,6 +119,7 @@ def validate_value(value, expected_type):
     return False, f'Неизвестный тип: {expected_type}'
 
 def insert(metadata, table_name, values):
+
     """
     Добавляет новую запись в таблицу
     """
@@ -130,7 +129,6 @@ def insert(metadata, table_name, values):
     # Загружаем текущие данные
     table_data = load_table_data(table_name)
     
-
     # Получаем схему таблицы
     columns = metadata[table_name]["columns"]
     column_names = list(columns.keys())
@@ -145,11 +143,11 @@ def insert(metadata, table_name, values):
     else:
         new_id = 1
 
-    # Добавляем новый ID в список значений
-    validated_columns_with_values={"ID":new_id}
+    # Создаем словарь для валидированных данных и сразу добавляем ID
+    validated_columns_with_values = {"ID": new_id}
 
-    #Связываем наименования колонок и значения
-    columns_with_values_without_id = zip(column_names[1:],values)
+    # Связываем наименования колонок и значения
+    columns_with_values_without_id = zip(column_names[1:], values)
 
     # Валидация значений согласно типу в метаданных
     for col_name, value in columns_with_values_without_id:
@@ -168,6 +166,7 @@ def insert(metadata, table_name, values):
     return True, f'Запись с ID={new_id} успешно добавлена в таблицу "{table_name}".'
 
 def select(metadata, table_name, where_clause=None):
+
     """Выбирает записи с возможностью фильтрации"""
 
     if table_name not in metadata:
@@ -192,6 +191,7 @@ def select(metadata, table_name, where_clause=None):
     return True, filtered_data
 
 def update(metadata, table_name, set_clause, where_clause):
+
     """Обновляет записи по условию"""
 
     if table_name not in metadata:
@@ -225,6 +225,7 @@ def update(metadata, table_name, set_clause, where_clause):
     return True, f'Обновлено {updated_count} записей в таблице "{table_name}".'
 
 def delete(metadata, table_name, where_clause):
+
     """Удаляет записи по условию"""
 
     if table_name not in metadata:
@@ -251,13 +252,53 @@ def delete(metadata, table_name, where_clause):
     
     return True, f'Удалено {deleted_count} записей из таблицы "{table_name}".'
 
+def info(metadata, table_name):
+
+    """Выводит информацию о таблице"""
+
+    if table_name not in metadata:
+        return False, f'Таблица "{table_name}" не существует'
+    
+    columns = metadata[table_name]["columns"]
+    table_data = load_table_data(table_name)
+    
+    columns_str = ", ".join([f"{name}:{typ}" for name, typ in columns.items()])
+    result = f'Таблица: {table_name}\n'
+    result += f'Столбцы: {columns_str}\n'
+    result += f'Количество записей: {len(table_data)}'
+    
+    return True, result
+
+def display_table(data, columns):
+
+    """Выводит данные в виде красивой таблицы с помощью PrettyTable"""
+
+    if not data:
+        print("Нет данных для отображения")
+        return
+    
+    table = PrettyTable()
+    table.field_names = list(columns.keys())
+    
+    for record in data:
+        row = [record.get(col, "") for col in columns.keys()]
+        table.add_row(row)
+    
+    print(table)
 
 def print_help():
+
     """
     Выводит справочную информацию.
     """
-    print("\n***База данных***")
+
+    print("\n***Операции с данными***")
     print("Функции:")
+    print("<command> insert into <имя_таблицы> values (<значение1>, <значение2>, ...) - создать запись")
+    print("<command> select from <имя_таблицы> [where <столбец>=<значение>] - прочитать записи")
+    print("<command> update <имя_таблицы> set <столбец>=<значение> where <столбец>=<значение> - обновить запись")
+    print("<command> delete from <имя_таблицы> where <столбец>=<значение> - удалить запись")
+    print("<command> info <имя_таблицы> - вывести информацию о таблице")
     print("<command> create_table <имя_таблицы> <столбец1:тип> <столбец2:тип> .. - создать таблицу")
     print("<command> list_tables - показать список всех таблиц")
     print("<command> drop_table <имя_таблицы> - удалить таблицу")
