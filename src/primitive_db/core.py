@@ -273,9 +273,7 @@ def info(metadata, table_name):
     return True, result
 
 def display_table(data, columns):
-
     """Выводит данные в виде красивой таблицы с помощью PrettyTable"""
-
     if not data:
         print("Нет данных для отображения")
         return
@@ -284,7 +282,13 @@ def display_table(data, columns):
     table.field_names = list(columns.keys())
     
     for record in data:
-        row = [record.get(col, "") for col in columns.keys()]
+        row = []
+        for col in columns.keys():
+            value = record.get(col, "")
+            # Преобразуем булевы значения для красивого отображения
+            if isinstance(value, bool):
+                value = "True" if value else "False"
+            row.append(value)
         table.add_row(row)
     
     print(table)

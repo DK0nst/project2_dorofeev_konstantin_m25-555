@@ -61,37 +61,19 @@ def parse_set_clause(set_str):
 def parse_values_list(values_str):
     """Парсит список значений в формате (value1, value2, value3)"""
     # Убираем скобки если есть
+    values_str = values_str.strip()
     if values_str.startswith("(") and values_str.endswith(")"):
-        values_str = values_str[1:-1]
+        values_str = values_str[1:-1].strip()
     
-    # Простой парсинг - разбиваем по запятым
-    values = []
-    current_value = ""
-    in_quotes = False
-    quote_char = None
+    # Если строка пустая после удаления скобок
+    if not values_str:
+        return []
     
-    for char in values_str:
-        if char in ('"', "'") and not in_quotes:
-            in_quotes = True
-            quote_char = char
-            current_value += char
-        elif char == quote_char and in_quotes:
-            in_quotes = False
-            current_value += char
-            values.append(current_value.strip())
-            current_value = ""
-        elif char == "," and not in_quotes:
-            if current_value.strip():
-                values.append(current_value.strip())
-            current_value = ""
-        else:
-            current_value += char
+    # Используем shlex для корректного разбиения с учетом кавычек
+    values = shlex.split(values_str)
     
-    if current_value.strip():
-        values.append(current_value.strip())
-    
-    # Парсим значения
-    return [parse_value(val) for val in values if val.strip()]
+    # Парсим значения и возвращаем результат
+    return [parse_value(val) for val in values]
 
 def run():
     """
@@ -155,10 +137,20 @@ def run():
 
             # ========== CRUD КОМАНДЫ ==========
                 
-            elif command == "insert" and len(args) >= 4 and args[0] == "into" and args[2] == "values":
-                # insert into users values ("John", 25, true)
+            elif command == "insert" and len(args) >= 4 and args[0] == "into":
+                # Ищем индекс "values"
+                values_index = -1
+                for i, arg in enumerate(args):
+                    if arg.lower() == "values":
+                        values_index = i
+                        break
+                
+                if values_index == -1:
+                    print("Ошибка: Отсутствует ключевое слово 'values'")
+                    continue
+                
                 table_name = args[1]
-                values_str = " ".join(args[3:])
+                values_str = " ".join(args[values_index+1:])
                 values = parse_values_list(values_str)
                 
                 success, message = insert(metadata, table_name, values)
