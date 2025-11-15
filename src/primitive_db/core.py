@@ -106,8 +106,11 @@ def validate_value(value, expected_type):
     elif expected_type == "bool":
         if isinstance(value, bool):
             return True, value
-        if str(value).lower() in ('true', 'false', '1', '0'):
-            return True, str(value).lower() in ('true', '1')
+        value_str = str(value).lower()
+        if value_str in ('true', '1', 'yes'):
+            return True, True
+        elif value_str in ('false', '0', 'no'):
+            return True, False
         return False, f'Значение "{value}" не может быть преобразовано в bool'
     
     elif expected_type == "str":
