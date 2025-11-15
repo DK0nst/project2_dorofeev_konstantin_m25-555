@@ -1,5 +1,6 @@
 import json
 
+
 def load_metadata(filepath="db_meta.json"):
     """
     Загружает метаданные из JSON-файла.

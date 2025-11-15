@@ -1,10 +1,21 @@
 import shlex
+
 import prompt
+
 from .core import (
-    create_table, drop_table, list_tables, print_help,
-    insert, select, update, delete, info, display_table
+    create_table,
+    delete,
+    display_table,
+    drop_table,
+    info,
+    insert,
+    list_tables,
+    print_help,
+    select,
+    update,
 )
 from .utils import load_metadata, save_metadata
+
 
 def parse_value(value_str):
     """Парсит строковое значение в соответствующий тип"""

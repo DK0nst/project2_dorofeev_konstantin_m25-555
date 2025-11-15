@@ -1,5 +1,6 @@
-from .utils import save_metadata, load_metadata, load_table_data, save_table_data
 from prettytable import PrettyTable
+
+from .utils import load_table_data, save_table_data
 
 # Поддерживаемые типы данных
 SUPPORTED_TYPES = {'int', 'str', 'bool'}
@@ -52,7 +53,7 @@ def create_table(metadata, table_name, columns):
 
         # Проверяем дублирование столбцов
         if col_name.upper() == "ID":
-            return False, f'Столбец ID зарезервирован за системой и создается автоматически'
+            return False, 'Столбец ID зарезервирован за системой и создается автоматически'
 
         if col_name in table_columns:
             return False, f'Столбец "{col_name}" уже существует в таблице'
