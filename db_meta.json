@@ -5,5 +5,11 @@
       "user_name": "str",
       "is_this_a_good_man": "bool"
     }
+  },
+  "SomeTestTable": {
+    "columns": {
+      "ID": "int",
+      "SomeCol": "str"
+    }
   }
 }
