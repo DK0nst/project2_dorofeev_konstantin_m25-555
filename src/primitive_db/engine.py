@@ -1,9 +1,97 @@
-
 import shlex
 import prompt
-from .core import create_table, drop_table, list_tables, print_help
+from .core import (
+    create_table, drop_table, list_tables, print_help,
+    insert, select, update, delete
+)
 from .utils import load_metadata, save_metadata
 
+def parse_value(value_str):
+    """Парсит строковое значение в соответствующий тип"""
+    value_str = value_str.strip()
+    
+    # Булевы значения
+    if value_str.lower() in ('true', 'false'):
+        return value_str.lower() == 'true'
+    
+    # Числа
+    if value_str.isdigit() or (value_str[0] == '-' and value_str[1:].isdigit()):
+        return int(value_str)
+    
+    # Строки (убираем кавычки если есть)
+    if (value_str.startswith('"') and value_str.endswith('"')) or \
+       (value_str.startswith("'") and value_str.endswith("'")):
+        return value_str[1:-1]
+    
+    return value_str
+
+def parse_where_condition(where_str):
+    """
+    Парсит условие WHERE в формате "столбец=значение"
+    Возвращает словарь {столбец: значение}
+    """
+    if "=" not in where_str:
+        return None, 'Неверный формат условия WHERE. Ожидается: "столбец=значение"'
+    
+    parts = where_str.split("=", 1)
+    column = parts[0].strip()
+    value_str = parts[1].strip()
+    
+    # Парсим значение
+    value = parse_value(value_str)
+    
+    return {column: value}, None
+
+def parse_set_clause(set_str):
+    """
+    Парсит SET выражение в формате "столбец=значение"
+    Возвращает словарь {столбец: значение}
+    """
+    if "=" not in set_str:
+        return None, 'Неверный формат SET. Ожидается: "столбец=значение"'
+    
+    parts = set_str.split("=", 1)
+    column = parts[0].strip()
+    value_str = parts[1].strip()
+    
+    value = parse_value(value_str)
+    
+    return {column: value}, None
+
+def parse_values_list(values_str):
+    """Парсит список значений в формате (value1, value2, value3)"""
+    # Убираем скобки если есть
+    if values_str.startswith("(") and values_str.endswith(")"):
+        values_str = values_str[1:-1]
+    
+    # Простой парсинг - разбиваем по запятым
+    values = []
+    current_value = ""
+    in_quotes = False
+    quote_char = None
+    
+    for char in values_str:
+        if char in ('"', "'") and not in_quotes:
+            in_quotes = True
+            quote_char = char
+            current_value += char
+        elif char == quote_char and in_quotes:
+            in_quotes = False
+            current_value += char
+            values.append(current_value.strip())
+            current_value = ""
+        elif char == "," and not in_quotes:
+            if current_value.strip():
+                values.append(current_value.strip())
+            current_value = ""
+        else:
+            current_value += char
+    
+    if current_value.strip():
+        values.append(current_value.strip())
+    
+    # Парсим значения
+    return [parse_value(val) for val in values if val.strip()]
 
 def run():
     """
@@ -74,24 +162,3 @@ def run():
         except Exception as e:
             print(f"Произошла ошибка: {e}")
             print("Попробуйте снова.")
-
-def welcome():
-    """Функция приветствия"""
-    print("Первая попытка запустить проект!")
-    print("***")
-    
-    while True:
-        user_input = prompt.string("Введите команду: ")
-        command = user_input.strip().lower()
-        
-        if command == "exit":
-            print("Выход из программы...")
-            break
-        elif command == "help":
-            print("<command> exit - выйти из программы")
-            print("<command> help - справочная информация")
-        elif command == "":
-            continue  # Игнорируем пустые команды
-        else:
-            print(f"Неизвестная команда: {command}")
-            print("Доступные команды: exit, help")
