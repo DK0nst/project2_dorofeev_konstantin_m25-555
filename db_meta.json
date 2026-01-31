@@ -1,8 +1,17 @@
 {
-  "test": {
+  "t": {
     "columns": {
       "ID": "int",
-      "col1": "str"
+      "c1": "int",
+      "c2": "str"
+    }
+  },
+  "new": {
+    "columns": {
+      "ID": "int",
+      "c1": "int",
+      "c2": "str",
+      "c3": "bool"
     }
   }
 }

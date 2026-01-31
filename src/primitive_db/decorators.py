@@ -57,7 +57,7 @@ def log_time(func):
         end_time = time.monotonic()
         
         execution_time = end_time - start_time
-        print(f"Функция '{func.__name__}' выполнилась за {execution_time:.3f} секунд.")
+        print(f"Функция '{func.__name__}' выполнялась {execution_time:.3f} секунд.")
         
         return result
     return wrapper

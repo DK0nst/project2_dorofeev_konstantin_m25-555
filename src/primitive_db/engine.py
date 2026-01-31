@@ -120,8 +120,16 @@ def run():
                     continue
                 
                 table_name = args[1]
-                values_str = " ".join(args[values_index+1:])
-                values = parse_values_list(values_str)
+                
+                # Собираем все аргументы после "values" в одну строку
+                values_str = " ".join(args[values_index + 1:])
+                
+                # Парсим значения
+                try:
+                    values = parse_values_list(values_str)
+                except Exception as e:
+                    print(f"Ошибка при разборе значений: {e}")
+                    continue
                 
                 success, message = insert(metadata, table_name, values)
                 print(message)
@@ -130,6 +138,7 @@ def run():
                 table_name = args[1]
                 
                 if len(args) > 2 and args[2] == "where":
+                    # Собираем все после "where" в одну строку
                     where_str = " ".join(args[3:])
                     where_clause, error = parse_where_condition(where_str)
                     if error:
@@ -203,40 +212,39 @@ def run():
             break
 
 
-def parse_value(value_str):
-    """Парсит строковое значение в соответствующий тип"""
-    value_str = value_str.strip()
-    
-    # Булевы значения
-    if value_str.lower() in ('true', 'false'):
-        return value_str.lower() == 'true'
-    
-    # Числа
-    if value_str.isdigit() or (value_str[0] == '-' and value_str[1:].isdigit()):
-        return int(value_str)
-    
-    # Строки (убираем кавычки если есть)
-    if (value_str.startswith('"') and value_str.endswith('"')) or \
-       (value_str.startswith("'") and value_str.endswith("'")):
-        return value_str[1:-1]
-    
-    return value_str
-
-
 def parse_where_condition(where_str):
     """
     Парсит условие WHERE в формате "столбец=значение"
     Возвращает словарь {столбец: значение}
     """
-    if "=" not in where_str:
+    where_str = where_str.strip()
+    
+    # Находим первый "=", который не внутри кавычек
+    in_quotes = False
+    quote_char = None
+    equals_index = -1
+    
+    for i, char in enumerate(where_str):
+        if char in ('"', "'") and (i == 0 or where_str[i-1] != '\\'):
+            if not in_quotes:
+                in_quotes = True
+                quote_char = char
+            elif char == quote_char:
+                in_quotes = False
+        elif char == '=' and not in_quotes:
+            equals_index = i
+            break
+    
+    if equals_index == -1:
         return None, 'Неверный формат условия WHERE. Ожидается: "столбец=значение"'
     
-    parts = where_str.split("=", 1)
-    column = parts[0].strip()
-    value_str = parts[1].strip()
+    column = where_str[:equals_index].strip()
+    value_str = where_str[equals_index+1:].strip()
     
     # Парсим значение
-    value = parse_value(value_str)
+    success, value = parse_value(value_str)
+    if not success:
+        return None, value  # здесь value - это сообщение об ошибке
     
     return {column: value}, None
 
@@ -246,20 +254,66 @@ def parse_set_clause(set_str):
     Парсит SET выражение в формате "столбец=значение"
     Возвращает словарь {столбец: значение}
     """
-    if "=" not in set_str:
+    set_str = set_str.strip()
+    
+    # Находим первый "=", который не внутри кавычек
+    in_quotes = False
+    quote_char = None
+    equals_index = -1
+    
+    for i, char in enumerate(set_str):
+        if char in ('"', "'") and (i == 0 or set_str[i-1] != '\\'):
+            if not in_quotes:
+                in_quotes = True
+                quote_char = char
+            elif char == quote_char:
+                in_quotes = False
+        elif char == '=' and not in_quotes:
+            equals_index = i
+            break
+    
+    if equals_index == -1:
         return None, 'Неверный формат SET. Ожидается: "столбец=значение"'
     
-    parts = set_str.split("=", 1)
-    column = parts[0].strip()
-    value_str = parts[1].strip()
+    column = set_str[:equals_index].strip()
+    value_str = set_str[equals_index+1:].strip()
     
-    value = parse_value(value_str)
+    success, value = parse_value(value_str)
+    if not success:
+        return None, value
     
     return {column: value}, None
 
 
+def parse_value(value_str):
+    """Парсит строковое значение в соответствующий тип, возвращает (success, value)"""
+    value_str = value_str.strip()
+    
+    # Пустая строка
+    if not value_str:
+        return False, "Пустое значение"
+    
+    # Булевы значения
+    if value_str.lower() in ('true', 'false'):
+        return True, value_str.lower() == 'true'
+    
+    # Числа (целые и отрицательные)
+    try:
+        return True, int(value_str)
+    except ValueError:
+        pass
+    
+    # Строки (убираем кавычки если есть)
+    if (value_str.startswith('"') and value_str.endswith('"')) or \
+       (value_str.startswith("'") and value_str.endswith("'")):
+        return True, value_str[1:-1]
+    
+    # Если ничего не подошло, считаем строкой (без кавычек)
+    return True, value_str
+
+
 def parse_values_list(values_str):
-    """Парсит список значений в формате (value1, value2, value3)"""
+    """Парсит список значений в формате (value1, value2, value3) или value1, value2, value3"""
     # Убираем скобки если есть
     values_str = values_str.strip()
     if values_str.startswith("(") and values_str.endswith(")"):
@@ -269,8 +323,36 @@ def parse_values_list(values_str):
     if not values_str:
         return []
     
-    # Используем shlex для корректного разбиения с учетом кавычек
-    values = shlex.split(values_str)
+    # Разбиваем строку на отдельные значения
+    values = []
+    current_value = ""
+    in_quotes = False
+    quote_char = None
     
-    # Парсим значения и возвращаем результат
-    return [parse_value(val) for val in values]
+    for i, char in enumerate(values_str):
+        if char in ('"', "'") and (i == 0 or values_str[i-1] != '\\'):
+            if not in_quotes:
+                in_quotes = True
+                quote_char = char
+                current_value += char
+            elif char == quote_char:
+                in_quotes = False
+                current_value += char
+            else:
+                current_value += char
+        elif char == ',' and not in_quotes:
+            if current_value.strip():
+                success, parsed_val = parse_value(current_value.strip())
+                if success:
+                    values.append(parsed_val)
+                current_value = ""
+        else:
+            current_value += char
+    
+    # Добавляем последнее значение
+    if current_value.strip():
+        success, parsed_val = parse_value(current_value.strip())
+        if success:
+            values.append(parsed_val)
+    
+    return values
