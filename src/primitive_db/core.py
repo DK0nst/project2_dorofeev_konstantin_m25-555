@@ -6,9 +6,14 @@ from .utils import load_table_data, save_table_data
 # Поддерживаемые типы данных
 SUPPORTED_TYPES = {'int', 'str', 'bool'}
 
+SELECT_CACHE = {}
+
 # Создаем кэшер для результатов запросов
 select_cache = create_cacher()
 
+def clear_select_cache():
+    """Очищает кэш запросов SELECT"""
+    SELECT_CACHE.clear()
 
 def validate_column_definition(column_def):
     """
@@ -28,7 +33,7 @@ def validate_column_definition(column_def):
     
     if col_type not in SUPPORTED_TYPES:
         return False, (f"Неподдерживаемый тип данных: {col_type}. "
-                        "Доступные: {', '.join(SUPPORTED_TYPES)}")
+                        f"Доступные: {', '.join(SUPPORTED_TYPES)}")
     
     return True, (name, col_type)
 
@@ -71,6 +76,9 @@ def create_table(metadata, table_name, columns):
     # Сохраняем таблицу в метаданные
     metadata[table_name] = {"columns": table_columns}
     
+    # Очищаем кэш запросов
+    clear_select_cache()
+    
     # Формируем сообщение об успехе
     columns_str = ", ".join([f"{name}:{typ}" for name, typ in table_columns.items()])
     return True, f'Таблица "{table_name}" успешно создана со столбцами: {columns_str}'
@@ -86,6 +94,8 @@ def drop_table(metadata, table_name):
         return False, f'Таблица "{table_name}" не существует.'
     
     del metadata[table_name]
+    # Очищаем кэш запросов
+    clear_select_cache()
     return True, f'Таблица "{table_name}" успешно удалена.'
 
 
@@ -122,8 +132,7 @@ def insert(metadata, table_name, values):
     
     # Проверяем количество значений (без ID)
     if len(values) != len(column_names) - 1:
-        return False, (f'Ожидается {len(column_names)-1} ' 
-                       f'значений для полей, получено {len(values)}')
+        return False, f'Ожидается {len(column_names)-1} значений для полей, получено {len(values)}'
 
    # Генерируем ID
     if table_data:
@@ -151,42 +160,10 @@ def insert(metadata, table_name, values):
     table_data.append(validated_columns_with_values)
     save_table_data(table_name, table_data)
     
+    # Очищаем кэш запросов для этой таблицы
+    clear_select_cache()
+    
     return True, f'Запись с ID={new_id} успешно добавлена в таблицу "{table_name}".'
-
-
-@handle_db_errors
-@log_time
-def select(metadata, table_name, where_clause=None):
-    """Выбирает записи с возможностью фильтрации с кэшированием"""
-    
-    # Создаем ключ для кэша
-    cache_key = f"select_{table_name}_{str(where_clause)}"
-    
-    def fetch_data():
-        """Функция для получения данных, используемая кэшером"""
-        if table_name not in metadata:
-            return False, f'Таблица "{table_name}" не существует'
-        
-        table_data = load_table_data(table_name)
-        
-        if where_clause is None:
-            return True, table_data
-        
-        # Фильтруем данные
-        filtered_data = []
-        for record in table_data:
-            match = True
-            for column, expected_value in where_clause.items():
-                if column not in record or record[column] != expected_value:
-                    match = False
-                    break
-            if match:
-                filtered_data.append(record)
-        
-        return True, filtered_data
-    
-    # Используем кэшер для получения результатов
-    return select_cache(cache_key, fetch_data)
 
 
 @handle_db_errors
@@ -219,6 +196,8 @@ def update(metadata, table_name, set_clause, where_clause):
     
     if updated_count > 0:
         save_table_data(table_name, table_data)
+        # Очищаем кэш запросов для этой таблицы
+        clear_select_cache()
     
     return True, f'Обновлено {updated_count} записей в таблице "{table_name}".'
 
@@ -248,9 +227,46 @@ def delete(metadata, table_name, where_clause):
     
     if deleted_count > 0:
         save_table_data(table_name, filtered_data)
+        # Очищаем кэш запросов для этой таблицы
+        clear_select_cache()
     
     return True, f'Удалено {deleted_count} записей из таблицы "{table_name}".'
 
+
+@handle_db_errors
+@log_time
+def select(metadata, table_name, where_clause=None):
+    """Выбирает записи с возможностью фильтрации"""
+    
+    # Создаем ключ для кэша
+    cache_key = f"select_{table_name}_{str(where_clause)}"
+    
+    # Проверяем кэш
+    if cache_key in SELECT_CACHE:
+        return True, SELECT_CACHE[cache_key]
+    
+    if table_name not in metadata:
+        return False, f'Таблица "{table_name}" не существует'
+    
+    table_data = load_table_data(table_name)
+    
+    if where_clause is None:
+        SELECT_CACHE[cache_key] = table_data
+        return True, table_data
+    
+    # Фильтруем данные
+    filtered_data = []
+    for record in table_data:
+        match = True
+        for column, expected_value in where_clause.items():
+            if column not in record or record[column] != expected_value:
+                match = False
+                break
+        if match:
+            filtered_data.append(record)
+    
+    SELECT_CACHE[cache_key] = filtered_data
+    return True, filtered_data
 
 @handle_db_errors
 def info(metadata, table_name):

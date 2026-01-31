@@ -3,15 +3,14 @@
     "columns": {
       "ID": "int",
       "c1": "int",
-      "c2": "str"
-    }
-  },
-  "new": {
-    "columns": {
-      "ID": "int",
-      "c1": "int",
       "c2": "str",
       "c3": "bool"
+    }
+  },
+  "t2": {
+    "columns": {
+      "ID": "int",
+      "c1": "int"
     }
   }
 }
