@@ -1,7 +1,6 @@
 import shlex
-
 import prompt
-
+from .decorators import handle_db_errors
 from .core import (
     create_table,
     list_tables,
@@ -14,6 +13,7 @@ from .core import (
     display_table
 )
 from .utils import load_metadata, save_metadata
+
 
 def print_help():
     print()
@@ -40,22 +40,21 @@ def print_help():
 
     print(50*"=")
 
-def run():
 
+@handle_db_errors
+def run():
     """
     Загружает актуальные метаданные.
     Запрашивает ввод у пользователя.
     Разбирает введенную строку на команду и аргументы.
     После каждой успешной операции сохраняет метаданные.
     """
-
     print_help()
 
     while True:
         try:
             # Загружаем актуальные метаданные
             metadata = load_metadata()
-
 
             # Получаем команду от пользователя
             user_input = prompt.string("\nВведите команду: ")
@@ -66,7 +65,6 @@ def run():
             
             command = command_parts[0].lower()
             args = command_parts[1:]
-
 
             if command == "exit":
                 print("\nВыход из программы...")
@@ -107,8 +105,8 @@ def run():
                 result = list_tables(metadata)
                 print(result)
 
-        # ========== CRUD КОМАНДЫ ==========
-                
+            # ========== CRUD КОМАНДЫ ==========
+                    
             elif command == "insert" and len(args) >= 4 and args[0] == "into":
                 # Ищем индекс "values"
                 values_index = -1
@@ -129,8 +127,6 @@ def run():
                 print(message)
                 
             elif command == "select" and len(args) >= 2 and args[0] == "from":
-                # select from users
-                # select from users where age=25
                 table_name = args[1]
                 
                 if len(args) > 2 and args[2] == "where":
@@ -153,7 +149,6 @@ def run():
                     print(result_data)  # В этом случае result_data содержит сообщение об ошибке
                     
             elif command == "update" and len(args) >= 5 and "set" in args and "where" in args:
-                # update users set age=26 where name="John"
                 table_name = args[0]
                 set_index = args.index("set")
                 where_index = args.index("where")
@@ -175,7 +170,6 @@ def run():
                 print(message)
                 
             elif command == "delete" and len(args) >= 4 and args[0] == "from" and args[2] == "where":
-                # delete from users where ID=1
                 table_name = args[1]
                 where_str = " ".join(args[3:])
                 
@@ -228,6 +222,7 @@ def parse_value(value_str):
     
     return value_str
 
+
 def parse_where_condition(where_str):
     """
     Парсит условие WHERE в формате "столбец=значение"
@@ -245,6 +240,7 @@ def parse_where_condition(where_str):
     
     return {column: value}, None
 
+
 def parse_set_clause(set_str):
     """
     Парсит SET выражение в формате "столбец=значение"
@@ -260,6 +256,7 @@ def parse_set_clause(set_str):
     value = parse_value(value_str)
     
     return {column: value}, None
+
 
 def parse_values_list(values_str):
     """Парсит список значений в формате (value1, value2, value3)"""
