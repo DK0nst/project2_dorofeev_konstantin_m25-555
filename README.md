@@ -1,1 +1,2 @@
-# project2_dorofeev_konstantin_m25-555
+# Это вторая версия проекта.
+
