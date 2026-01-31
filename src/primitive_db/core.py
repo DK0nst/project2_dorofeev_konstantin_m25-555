@@ -8,7 +8,8 @@ def validate_column_definition(column_def):
     Формат: "имя:тип"
     """
     if ':' not in column_def:
-        return False, f"Некорректный формат столбца: {column_def}. Используйте 'имя:тип'"
+        return False, (f"Некорректный формат столбца: {column_def}. " 
+                         "Используйте 'имя:тип'")
     
     name, col_type = column_def.split(':', 1)
     name = name.strip()
@@ -18,7 +19,8 @@ def validate_column_definition(column_def):
         return False, "Имя столбца не может быть пустым"
     
     if col_type not in SUPPORTED_TYPES:
-        return False, f"Неподдерживаемый тип данных: {col_type}. Доступные: {', '.join(SUPPORTED_TYPES)}"
+        return False, (f"Неподдерживаемый тип данных: {col_type}. "
+                        "Доступные: {', '.join(SUPPORTED_TYPES)}")
     
     return True, (name, col_type)
 
@@ -44,7 +46,8 @@ def create_table(metadata, table_name, columns):
     
     # Обрабатываем пользовательские столбцы
     for col_def in columns:
-        # Проверяем наличие наименования и допустимый тип столбца (обернуто в функцию)
+        # Проверяем наличие наименования и 
+        # допустимый тип столбца (обернуто в функцию)
         is_valid, result = validate_column_definition(col_def)
         if not is_valid:
             return False, result
@@ -53,7 +56,8 @@ def create_table(metadata, table_name, columns):
 
         # Проверяем дублирование столбцов
         if col_name.upper() == "ID":
-            return False, 'Столбец ID зарезервирован за системой и создается автоматически'
+            return False, ('Столбец ID зарезервирован за системой '
+                           'и создается автоматически')
 
         if col_name in table_columns:
             return False, f'Столбец "{col_name}" уже существует в таблице'

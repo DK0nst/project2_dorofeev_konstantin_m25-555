@@ -1,7 +1,10 @@
 import shlex
+
 import prompt
-from .utils import load_metadata, save_metadata
+
 from .core import create_table, drop_table, list_tables
+from .utils import load_metadata, save_metadata
+
 
 def print_help():
     print()
@@ -25,7 +28,7 @@ def run():
     Загружает актуальные метаданные.
     Запрашивает ввод у пользователя.
     Разбирает введенную строку на команду и аргументы.
-    После каждой успешной операции (create_table, drop_table) сохраняйте измененные метаданные с помощью save_metadata.
+    После каждой успешной операции сохраняет метаданные.
     """
 
     print_help()
@@ -56,7 +59,8 @@ def run():
 
             elif command == "create_table":
                 if len(args) < 2:
-                    print("Ошибка: Недостаточно аргументов. Используйте: create_table <имя_таблицы> <столбец1:тип> ...")
+                    print("Ошибка: Недостаточно аргументов. ")
+                    print("Используйте: create_table <имя_таблицы> <столбец1:тип> ...")
                     continue
                 
                 table_name = args[0]
@@ -70,7 +74,8 @@ def run():
                     
             elif command == "drop_table":
                 if len(args) != 1:
-                    print("Ошибка: Неверное количество аргументов. Используйте: drop_table <имя_таблицы>")
+                    print("Ошибка: Неверное количество аргументов. ")
+                    print("Используйте: drop_table <имя_таблицы>")
                     continue
                 
                 table_name = args[0]
@@ -85,7 +90,8 @@ def run():
                 print(result)
 
             else:
-                print(f"Функции '{command}' нет. Попробуйте снова или вызовите справку.")
+                print(f"Функции '{command}' нет.")
+                print("Попробуйте снова или вызовите справку.")
                 continue
                 
         except KeyboardInterrupt:
