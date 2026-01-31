@@ -132,7 +132,8 @@ def insert(metadata, table_name, values):
     
     # Проверяем количество значений (без ID)
     if len(values) != len(column_names) - 1:
-        return False, f'Ожидается {len(column_names)-1} значений для полей, получено {len(values)}'
+        return False, (f'Ожидается {len(column_names)-1} '
+                       f'значений для полей, получено {len(values)}')
 
    # Генерируем ID
     if table_data:
