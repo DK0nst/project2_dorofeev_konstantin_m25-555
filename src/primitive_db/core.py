@@ -1,6 +1,7 @@
 from prettytable import PrettyTable
+
+from .decorators import confirm_action, create_cacher, handle_db_errors, log_time
 from .utils import load_table_data, save_table_data
-from .decorators import handle_db_errors, confirm_action, log_time, create_cacher
 
 # Поддерживаемые типы данных
 SUPPORTED_TYPES = {'int', 'str', 'bool'}
@@ -121,7 +122,8 @@ def insert(metadata, table_name, values):
     
     # Проверяем количество значений (без ID)
     if len(values) != len(column_names) - 1:
-        return False, f'Ожидается {len(column_names)-1} значений для полей, получено {len(values)}'
+        return False, (f'Ожидается {len(column_names)-1} ' 
+                       f'значений для полей, получено {len(values)}')
 
    # Генерируем ID
     if table_data:
@@ -287,7 +289,8 @@ def validate_value(value, expected_type):
     
     elif expected_type == "str":
         # Убираем кавычки если есть
-        if isinstance(value, str) and len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+        if (isinstance(value, str) and len(value) >= 2 
+                and value[0] == value[-1] and value[0] in ('"', "'")):
             value = value[1:-1]
         return True, str(value)
     

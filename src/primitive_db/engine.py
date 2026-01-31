@@ -1,17 +1,19 @@
 import shlex
+
 import prompt
-from .decorators import handle_db_errors
+
 from .core import (
     create_table,
-    list_tables,
-    drop_table,
     delete,
-    select,
-    update,
+    display_table,
+    drop_table,
     info,
     insert,
-    display_table
+    list_tables,
+    select,
+    update,
 )
+from .decorators import handle_db_errors
 from .utils import load_metadata, save_metadata
 
 
@@ -27,10 +29,13 @@ def print_help():
     print("list_tables - показать список всех таблиц")
     
     print("\nРабота с записями\n")
-    print("insert into <имя_таблицы> values (<значение1>, <значение2>, ...) - создать запись.")
-    print("select from <имя_таблицы> where <столбец> = <значение> - прочитать записи по условию.")
+    print("insert into <имя_таблицы> values "
+            "(<значение1>, <значение2>, ...) - создать запись.")
+    print("select from <имя_таблицы> " \
+            "where <столбец> = <значение> - прочитать записи по условию.")
     print("select from <имя_таблицы> - прочитать все записи.")
-    print("update <имя_таблицы> set <столбец1> = <новое_значение1> where <столбец_условия> = <значение_условия> - обновить запись.")
+    print("update <имя_таблицы> set <столбец1> = <новое_значение1> " \
+            "where <столбец_условия> = <значение_условия> - обновить запись.")
     print("delete from <имя_таблицы> where <столбец> = <значение> - удалить запись.")
     print("info <имя_таблицы> - вывести информацию о таблице.")
 
@@ -155,9 +160,11 @@ def run():
                     else:
                         print("Нет данных для отображения")
                 else:
-                    print(result_data)  # В этом случае result_data содержит сообщение об ошибке
+                    # В этом случае result_data содержит сообщение об ошибке
+                    print(result_data)  
                     
-            elif command == "update" and len(args) >= 5 and "set" in args and "where" in args:
+            elif (command == "update" and len(args) >= 5 
+                        and "set" in args and "where" in args):
                 table_name = args[0]
                 set_index = args.index("set")
                 where_index = args.index("where")
@@ -175,10 +182,12 @@ def run():
                     print(f"Ошибка в WHERE: {where_error}")
                     continue
                 
-                success, message = update(metadata, table_name, set_clause, where_clause)
+                success, message = update(metadata, table_name, 
+                                          set_clause, where_clause)
                 print(message)
                 
-            elif command == "delete" and len(args) >= 4 and args[0] == "from" and args[2] == "where":
+            elif (command == "delete" and len(args) >= 4 
+                    and args[0] == "from" and args[2] == "where"):
                 table_name = args[1]
                 where_str = " ".join(args[3:])
                 
@@ -192,7 +201,8 @@ def run():
                 
             elif command == "info":
                 if len(args) != 1:
-                    print("Ошибка: Неверное количество аргументов. Используйте: info <имя_таблицы>")
+                    print("Ошибка: Неверное количество аргументов. " \
+                            "Используйте: info <имя_таблицы>")
                     continue
                 
                 table_name = args[0]
@@ -313,7 +323,10 @@ def parse_value(value_str):
 
 
 def parse_values_list(values_str):
-    """Парсит список значений в формате (value1, value2, value3) или value1, value2, value3"""
+    """
+    Парсит список значений в формате (value1, value2, value3) 
+    или value1, value2, value3
+    """
     # Убираем скобки если есть
     values_str = values_str.strip()
     if values_str.startswith("(") and values_str.endswith(")"):

@@ -13,7 +13,8 @@ def handle_db_errors(func):
         try:
             return func(*args, **kwargs)
         except FileNotFoundError as e:
-            return False, f"Ошибка: Файл данных не найден. Возможно, база данных не инициализирована. {e}"
+            return False, (f"Ошибка: Файл данных не найден. "
+                           f"Возможно, база данных не инициализирована. {e}")
         except KeyError as e:
             return False, f"Ошибка: Таблица или столбец '{e}' не найден."
         except ValueError as e:
